@@ -1,6 +1,6 @@
 package ru.otus.module1.futures
 
-import ru.otus.module1.futures.HomeworksUtils.TaskSyntax
+//import ru.otus.module1.futures.HomeworksUtils.TaskSyntax
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -20,7 +20,17 @@ object task_futures_sequence {
    * @return асинхронную задачу с кортежом из двух списков
    */
   def fullSequence[A](futures: List[Future[A]])
-                     (implicit ex: ExecutionContext): Future[(List[A], List[Throwable])] =
-    task"Реализуйте метод `fullSequence`" ()
-
+                     (implicit ex: ExecutionContext): Future[(List[A], List[Throwable])] = {
+    {
+      futures.foldLeft(Future.successful((List.empty[A], List.empty[Throwable]))) {
+        case (accFuture, future) =>
+          accFuture.flatMap { case (accSuccess, accFail) =>
+            future.map(value => (value :: accSuccess, accFail))
+              .recover {
+                case e => (accSuccess, e :: accFail)
+              }
+          }
+      }.map { case (accSuccess, accFail) => (accSuccess.reverse, accFail.reverse) }
+    }
+  }
 }
